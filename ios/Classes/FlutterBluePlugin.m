@@ -506,8 +506,10 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
   }
   ProtosReadDescriptorResponse *result = [[ProtosReadDescriptorResponse alloc] init];
   [result setRequest:q];
-  int value = [descriptor.value intValue];
-  [result setValue:[NSData dataWithBytes:&value length:sizeof(value)]];
+
+  NSData* data = [self dataWithDescriptor:descriptor];
+  [result setValue:data];
+
   [_channel invokeMethod:@"ReadDescriptorResponse" arguments:[self toFlutterData:result]];
 
   // If descriptor is CCCD, send a SetNotificationResponse in case anything is awaiting
@@ -518,6 +520,51 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     [response setSuccess:true];
     [_channel invokeMethod:@"SetNotificationResponse" arguments:[self toFlutterData:response]];
   }
+}
+
+- (NSData* )dataWithDescriptor:(CBDescriptor *)descriptor {
+    NSData* data = [NSData data];
+    NSString* uuid = descriptor.UUID.UUIDString;
+    
+    // TODO: Remove this
+    if( [uuid isEqualToString:CBUUIDCharacteristicExtendedPropertiesString] ) {
+        NSLog(@"CBUUIDCharacteristicExtendedPropertiesString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDCharacteristicUserDescriptionString] ) {
+        NSLog(@"CBUUIDCharacteristicUserDescriptionString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDClientCharacteristicConfigurationString] ) {
+        NSLog(@"CBUUIDClientCharacteristicConfigurationString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDCharacteristicFormatString] ) {
+        NSLog(@"CBUUIDCharacteristicFormatString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDCharacteristicAggregateFormatString] ) {
+        NSLog(@"CBUUIDCharacteristicAggregateFormatString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDCharacteristicValidRangeString] ) {
+        NSLog(@"CBUUIDCharacteristicValidRangeString = %@", descriptor.value);
+    }
+    else if( [uuid isEqualToString:CBUUIDL2CAPPSMCharacteristicString] ) {
+        NSLog(@"CBUUIDL2CAPPSMCharacteristicString = %@", descriptor.value);
+    }
+    else {
+        NSLog(@"OTHER_DESCRIPTOR = %@", descriptor.value);
+    }
+    
+    // TODO: Convert NSNumber types too
+    if( [descriptor.value isKindOfClass:[NSData class]] ) {
+        return descriptor.value;
+    }
+    if( [descriptor.value isKindOfClass:[NSString class]] ) {
+        return [descriptor.value dataUsingEncoding:NSUTF8StringEncoding];
+    }
+    if( [descriptor.value isKindOfClass:[NSNumber class]] ) {
+        int value = [descriptor.value intValue];
+        return [NSData dataWithBytes:&value length:sizeof(value)];
+    }
+    
+    return data;
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didWriteValueForDescriptor:(CBDescriptor *)descriptor error:(NSError *)error {
@@ -709,8 +756,10 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
   [result setRemoteId:[peripheral.identifier UUIDString]];
   [result setCharacteristicUuid:[descriptor.characteristic.UUID fullUUIDString]];
   [result setServiceUuid:[descriptor.characteristic.service.UUID fullUUIDString]];
-  int value = [descriptor.value intValue];
-  [result setValue:[NSData dataWithBytes:&value length:sizeof(value)]];
+
+  NSData* data = [self dataWithDescriptor:descriptor];
+  [result setValue:data];
+
   return result;
 }
 
